@@ -9,7 +9,6 @@ import java.io.IOException
 import java.util.concurrent.atomic.AtomicInteger
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subscribers.TestSubscriber
-import timber.log.Timber
 import java.util.concurrent.TimeUnit
 
 class FlowableExtensionsUnitTest {
@@ -21,8 +20,9 @@ class FlowableExtensionsUnitTest {
         println("testRetryOnIOError Process Without Exceptions")
         val source = getTestFlowable(10L, 1L)
         val sourceWithRetryOnIOError = source.retryOnError(
-            IOException::class.java as Class<Throwable>)
-        processResults(sourceWithRetryOnIOError, false)
+            arrayOf(IOException::class.java as Class<Throwable>))
+
+        processResults(sourceWithRetryOnIOError)
     }
 
     @Test
@@ -38,9 +38,9 @@ class FlowableExtensionsUnitTest {
             }
 
         val sourceWithRetryOnIOError = sourceIoErrors.retryOnError(
-            IOException::class.java as Class<Throwable>)
+            arrayOf(IOException::class.java as Class<Throwable>))
 
-        processResults(sourceWithRetryOnIOError, true)
+        processResults(sourceWithRetryOnIOError)
     }
 
     @Test
@@ -56,37 +56,27 @@ class FlowableExtensionsUnitTest {
             }
 
         val sourceWithRetryOnIOError = sourceIoErrors.retryOnError(
-            IOException::class.java as Class<Throwable>)
-
-        processResults(sourceWithRetryOnIOError, true)
+            arrayOf(IOException::class.java as Class<Throwable>))
+        processResults(sourceWithRetryOnIOError)
     }
 
     @Test
-    fun testRetryOnError_TestTimeoutIfNoItemsInStream() {
-        println("testRetryOnIOError Test Timeout If No Items In Stream")
-        val source = getTestFlowableWithDelayAndIOErr(20L, 1L)
-        val sourceWithRetryOnIOError = source.retryOnError(
-            IOException::class.java as Class<Throwable>)
-        processResults(sourceWithRetryOnIOError, true)
-    }
-
-    @Test
-    fun testRetryOnError1() {
-        val source = getTestFlowableWithDelayAndIOErr(20L, 1L)
-        val methodResultFlowable = source.retryOnError1(IOException::class.java as Class<Throwable>)
-        processResults(methodResultFlowable, false)
-    }
-
-    @Test
-    fun testSubscribeAndRetryOnIOError() {
-        val source = getTestFlowable(60L, 1L)
+    fun testLifecycleAndRetryOnIOError() {
+        val source = getTestFlowable(30L, 1L)
 
         val lman = LifecycleManager()
         val testSubscriber = getTestSubscriber()
 
         emulateLifecycleEvents(lman)
 
-        source.subscribeAndRetryOnIOError(testSubscriber, lman)
+        val sourceIOAndLifecycle = source.lifecycleAndRetryOnIOError(lman)
+            .doOnNext { i ->
+                println("source item: $i")
+            }
+        sourceIOAndLifecycle
+            .subscribeOn(Schedulers.trampoline())
+            .observeOn(Schedulers.io())
+            .subscribe(testSubscriber)
 
         testSubscriber.awaitDone(2, TimeUnit.MINUTES)
 
@@ -94,7 +84,7 @@ class FlowableExtensionsUnitTest {
         println("values: $list")
     }
 
-    private fun emulateLifecycleEvents(lman: LifecycleManager, delay: Long = 10, maxCount: Long = 7) {
+    private fun emulateLifecycleEvents(lman: LifecycleManager, delay: Long = 15, maxCount: Long = 2) {
         var count = 0
         val emulatedFlow = Flowable.fromCallable { "" }
             .delay(delay, TimeUnit.SECONDS)
@@ -114,15 +104,17 @@ class FlowableExtensionsUnitTest {
             .subscribeOn(Schedulers.io())
             .observeOn(Schedulers.io())
             .subscribe(subscriber)
-        //subscriber.awaitTerminalEvent()
     }
 
-    private fun processResults(source: Flowable<Int>, checkErr: Boolean = false) {
-        processResults(getTestSubscriber(), source, checkErr)
+    private fun processResults(source: Flowable<Int>) {
+        processResults(getTestSubscriber(), source)
     }
 
-    private fun processResults(subscriber: TestSubscriber<Int>, source: Flowable<Int>, checkErr: Boolean = false) {
-        source
+    private fun processResults(subscriber: TestSubscriber<Int>, source: Flowable<Int>) {
+        val sourcePrintLn = source.doOnNext {
+            println("source item: $it")
+        }
+        sourcePrintLn
             .subscribeOn(Schedulers.trampoline())
             .observeOn(Schedulers.io())
             .subscribe(subscriber)
@@ -140,31 +132,6 @@ class FlowableExtensionsUnitTest {
         }
     }
 
-    private fun getTestFlowableWithDelayAndIOErr(maxItemsCount: Long = 20L, interval: Long = 3L): Flowable<Int> {
-        val source = getTestFlowable(maxItemsCount, interval)
-        val sourceIoErrors = source
-            .flatMap { i: Int ->
-                when {
-                    i % 4 == 0 -> Flowable.error(IOException())
-                    else -> Flowable.just(i)
-                }
-            }
-        return sourceIoErrors.delayForItem(5, 40000)
-    }
-
-    private fun Flowable<Int>.delayForItem(itemIdx: Int, delay: Long): Flowable<Int> {
-        return delay { i ->
-            if (i == itemIdx) {
-                try {
-                    Thread.sleep(delay)
-                } catch (e: InterruptedException) {
-                    Timber.e(e)
-                }
-            }
-            Flowable.just(i)
-        }
-    }
-
     private fun getTestFlowable(maxItemsCount: Long = 20L, interval: Long = 3L): Flowable<Int> {
         val atomicInteger = AtomicInteger()
         return Flowable.fromCallable {
@@ -174,7 +141,5 @@ class FlowableExtensionsUnitTest {
                 maxItemsCount.toInt()
             }
         }.delay(interval, TimeUnit.SECONDS).repeat(maxItemsCount)
-            .doOnNext { println("source Flowable: $it") }
-            .doOnComplete { println("source Flowable done") }
     }
 }
