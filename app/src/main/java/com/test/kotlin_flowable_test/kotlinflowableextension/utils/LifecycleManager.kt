@@ -10,18 +10,10 @@ class LifecycleManager: LifecycleObserver {
     var initialState = true
     @Volatile var isPaused = false
 
-    fun <R> attachValve(flow: Flowable<R>): Flowable<R> {
-        val valved = flow
-        .distinctUntilChanged()
-        .switchMap { item ->
-            if (!isPaused) {
-                Flowable.just(item)
-            } else {
-                Flowable.empty()
-            }
-        }
+    fun <R> attachFlow(flow: Flowable<R>): Flowable<R> {
+        val valveFilter = flow.filter { i -> !isPaused }
         initState()
-        return valved
+        return valveFilter
     }
 
     fun attachLifecycle(lifecycle: Lifecycle?) {

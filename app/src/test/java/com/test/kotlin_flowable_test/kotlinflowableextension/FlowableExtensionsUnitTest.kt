@@ -74,8 +74,8 @@ class FlowableExtensionsUnitTest {
                 println("source item: $i")
             }
         sourceIOAndLifecycle
-            .subscribeOn(Schedulers.trampoline())
-            .observeOn(Schedulers.io())
+            .subscribeOn(Schedulers.io())
+            .observeOn(Schedulers.trampoline())
             .subscribe(testSubscriber)
 
         testSubscriber.awaitDone(2, TimeUnit.MINUTES)
@@ -115,8 +115,8 @@ class FlowableExtensionsUnitTest {
             println("source item: $it")
         }
         sourcePrintLn
-            .subscribeOn(Schedulers.trampoline())
-            .observeOn(Schedulers.io())
+            .subscribeOn(Schedulers.io())
+            .observeOn(Schedulers.trampoline())
             .subscribe(subscriber)
         subscriber.awaitDone(2, TimeUnit.MINUTES)
         assert(!list.isEmpty())

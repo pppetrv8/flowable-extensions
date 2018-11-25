@@ -57,7 +57,7 @@ fun <R> Flowable<R>.retryOnError(retryExceptions: Array<Class<Throwable>>,
  */
 fun <R> Flowable<R>.lifecycleAndRetryOnIOError(manager: LifecycleManager,
     retryMaxTimes: Long = 3, maxDelayTime: Long = 30): Flowable<R> {
-    val sourceValved = manager.attachValve(this)
+    val sourceValved = manager.attachFlow(this)
     return sourceValved.retryOnError(
         arrayOf(IOException::class.java as Class<Throwable>), retryMaxTimes, maxDelayTime)
 }
