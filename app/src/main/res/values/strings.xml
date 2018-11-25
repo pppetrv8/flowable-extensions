@@ -4,5 +4,6 @@
 
     <string name="start_emitting_text">Start emitting</string>
     <string name="stop_emitting_text">Stop emitting</string>
+    <string name="clear_log_text">Clear log</string>
 
 </resources>
