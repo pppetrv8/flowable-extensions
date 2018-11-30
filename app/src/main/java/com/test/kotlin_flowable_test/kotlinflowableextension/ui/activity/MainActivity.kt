@@ -3,7 +3,6 @@ package com.test.kotlin_flowable_test.kotlinflowableextension.ui.activity
 import android.arch.lifecycle.Observer
 import android.arch.lifecycle.ViewModelProviders
 import android.os.Bundle
-import android.support.v4.app.FragmentActivity
 import android.support.v7.app.AppCompatActivity
 
 import com.test.kotlin_flowable_test.kotlinflowableextension.R

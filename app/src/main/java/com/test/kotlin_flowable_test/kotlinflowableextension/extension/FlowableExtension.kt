@@ -1,7 +1,7 @@
 package com.test.kotlin_flowable_test.kotlinflowableextension.extension
 
 import com.test.kotlin_flowable_test.kotlinflowableextension.utils.LifecycleManager
-import com.test.kotlin_flowable_test.kotlinflowableextension.utils.getCurrentTimeMillis
+import com.test.kotlin_flowable_test.kotlinflowableextension.utils.Timestamp
 import io.reactivex.Flowable
 import java.io.IOException
 
@@ -62,16 +62,3 @@ fun <R> Flowable<R>.lifecycleAndRetryOnIOError(manager: LifecycleManager,
         arrayOf(IOException::class.java as Class<Throwable>), retryMaxTimes, maxDelayTime)
 }
 
-class Timestamp {
-    private var timestamp: Long = getCurrentTimeMillis()
-    fun reset() {
-        timestamp = getCurrentTimeMillis()
-    }
-    fun getTime(): Long {
-        val curTime = getCurrentTimeMillis()
-        return curTime - timestamp
-    }
-    override fun toString(): String {
-        return "$timestamp"
-    }
-}
